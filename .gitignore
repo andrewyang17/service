@@ -1,0 +1,5 @@
+# Editor files
+.idea/
+
+# Binaries
+app/services/sales-api/sales-api

@@ -1,0 +1,20 @@
+FROM golang:1.17 as build_sales-api
+ARG BUILD_REF
+
+COPY . /service
+WORKDIR /service/app/services/sales-api
+RUN go build -ldflags "-X main.build=${BUILD_REF}"
+
+FROM alpine:3.14
+ARG BUILD_DATE
+ARG BUILD_REF
+COPY --from=build_sales-api /service/app/services/sales-api/sales-api /service/sales-api
+WORKDIR /service
+CMD ["./sales-api"]
+
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.title="sales-api" \
+      org.opencontainers.image.authors="Andrew Yang <yangzhisiangg@gmail.com>" \
+      org.opencontainers.image.source="https://github.com/andrewyang17/service/app/sales-api" \
+      org.opencontainers.image.revision="${BUILD_REF}" \
+      org.opencontainers.image.vendor="Andrew Yang"
