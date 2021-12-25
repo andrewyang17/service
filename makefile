@@ -1,19 +1,29 @@
 SHELL := /bin/bash
 
+# ==============================================================================
+# Testing running system
+
+# expvarmon -ports=":4000" -vars="build,requests,goroutines,errors,panics,mem:memstats.Alloc"
+
+# ==============================================================================
+# Running locally
+
 run:
-	go run main.go
+	go run app/services/sales-api/main.go | go run app/tooling/logfmt/main.go
 
 build:
 	go build -ldflags "-X main.build=local"
 
-
+# ==============================================================================
 # Modules support
 tidy:
 	go mod tidy
 	go mod vendor
 
 
+# ==============================================================================
 # Building container
+
 VERSION := 1.0
 
 all: sales-api
@@ -26,8 +36,9 @@ sales-api:
 		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
 		.
 
+# ==============================================================================
+# Running from within k8s/kind
 
-# k8s/kind
 KIND_CLUSTER := service-cluster
 
 kind-up:
@@ -56,7 +67,7 @@ kind-status-sales:
 	kubectl get pods -o wide --watch
 
 kind-logs:
-	kubectl logs -l app=sales --all-containers=true -f --tail=100
+	kubectl logs -l app=sales --all-containers=true -f --tail=100  | go run app/tooling/logfmt/main.go
 
 kind-restart:
 	kubectl rollout restart deployment sales-pod

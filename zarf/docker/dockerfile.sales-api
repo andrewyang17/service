@@ -1,7 +1,9 @@
 FROM golang:1.17 as build_sales-api
+ENV CGO_ENABLED 0
 ARG BUILD_REF
 
 COPY . /service
+
 WORKDIR /service/app/services/sales-api
 RUN go build -ldflags "-X main.build=${BUILD_REF}"
 
