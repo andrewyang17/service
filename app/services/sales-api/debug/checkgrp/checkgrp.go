@@ -3,9 +3,10 @@ package checkgrp
 
 import (
 	"encoding/json"
-	"go.uber.org/zap"
 	"net/http"
 	"os"
+
+	"go.uber.org/zap"
 )
 
 type Handlers struct {
