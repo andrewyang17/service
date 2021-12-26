@@ -3,13 +3,14 @@ package handlers
 
 import (
 	"expvar"
-	"github.com/andrewyang17/service/app/services/sales-api/debug/checkgrp"
-	"github.com/andrewyang17/service/app/services/sales-api/v1/testgrp"
+	"github.com/andrewyang17/service/business/web/mid"
 	"net/http"
 	"net/http/pprof"
 	"os"
 
-	"github.com/dimfeld/httptreemux/v5"
+	"github.com/andrewyang17/service/app/services/sales-api/debug/checkgrp"
+	"github.com/andrewyang17/service/app/services/sales-api/v1/testgrp"
+	"github.com/andrewyang17/service/foundation/web"
 	"go.uber.org/zap"
 )
 
@@ -18,14 +19,23 @@ type APIMuxConfig struct {
 	Log      *zap.SugaredLogger
 }
 
-func APIMux(cfg APIMuxConfig) http.Handler {
-	mux := httptreemux.NewContextMux()
+func v1(app *web.App, cfg APIMuxConfig) {
+	const version = "v1"
+	tgh := testgrp.Handlers{Log: cfg.Log}
 
-	tcgh := testgrp.Handlers{Log: cfg.Log}
+	app.Handle(http.MethodGet, version, "/test", tgh.Test)
+}
 
-	mux.Handle(http.MethodGet, "/test", tcgh.Test)
+func APIMux(cfg APIMuxConfig) *web.App {
+	app := web.NewApp(
+		cfg.Shutdown,
+		mid.Logger(cfg.Log),
+		mid.Errors(cfg.Log),
+	)
 
-	return mux
+	v1(app, cfg)
+
+	return app
 }
 
 func DebugStandardLibraryMux() *http.ServeMux {
@@ -43,7 +53,7 @@ func DebugStandardLibraryMux() *http.ServeMux {
 
 func DebugMux(build string, log *zap.SugaredLogger) http.Handler {
 	mux := DebugStandardLibraryMux()
-	
+
 	cgh := checkgrp.Handlers{
 		Build: build,
 		Log:   log,
