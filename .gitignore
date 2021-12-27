@@ -3,3 +3,8 @@
 
 # Binaries
 app/services/sales-api/sales-api
+app/tooling/admin/admin
+app/tooling/admin/logfmt
+
+# Others
+*.pem
