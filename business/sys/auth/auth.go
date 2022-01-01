@@ -45,7 +45,7 @@ func New(activeKID string, keyLookup KeyLookup) (*Auth, error) {
 			return nil, errors.New("user token key id (kid) must be string")
 		}
 
-		return keyLookup.PublicKey(kidID), nil
+		return keyLookup.PublicKey(kidID)
 	}
 
 	parser := jwt.Parser{
@@ -84,7 +84,7 @@ func (a *Auth) ValidateToken(tokenStr string) (Claims, error) {
 	var claims Claims
 
 	token, err := a.parser.ParseWithClaims(tokenStr, &claims, a.keyFunc)
-	if  err != nil {
+	if err != nil {
 		return Claims{}, fmt.Errorf("parsing token: %w", err)
 	}
 
