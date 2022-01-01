@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/andrewyang17/service/app/services/sales-api/handlers"
+	"github.com/andrewyang17/service/business/sys/auth"
+	"github.com/andrewyang17/service/foundation/keystore"
 	"github.com/ardanlabs/conf/v2"
 	"go.uber.org/automaxprocs/maxprocs"
 	"go.uber.org/zap"
@@ -80,6 +82,10 @@ func run(log *zap.SugaredLogger) error {
 			APIHost         string        `conf:"default:0.0.0.0:3000"`
 			DebugHost       string        `conf:"default:0.0.0.0:4000"`
 		}
+		Auth struct {
+			KeyFolder string `conf:"default:zarf/keys/"`
+			ActiveKID string `conf:"default:0ddfa338-de77-4c23-acf6-2368202fc5a1"`
+		}
 	}{
 		Version: conf.Version{
 			Build: build,
@@ -112,6 +118,21 @@ func run(log *zap.SugaredLogger) error {
 	expvar.NewString("build").Set(build)
 
 	// =========================================================================
+	// Initialize authentication support
+
+	log.Infow("startup", "status", "initializing authentication support")
+
+	ks, err := keystore.NewFS(os.DirFS(cfg.Auth.KeyFolder))
+	if err != nil {
+		return fmt.Errorf("reading keys: %w", err)
+	}
+
+	auth, err := auth.New(cfg.Auth.ActiveKID, ks)
+	if err != nil {
+		return fmt.Errorf("constructing auth: %w", err)
+	}
+
+	// =========================================================================
 	// Start Debug Service
 
 	log.Infow("startup", "status", "debug router started", "host", cfg.Web.DebugHost)
@@ -139,15 +160,16 @@ func run(log *zap.SugaredLogger) error {
 	apiMux := handlers.APIMux(handlers.APIMuxConfig{
 		Shutdown: shutdown,
 		Log:      log,
+		Auth:     auth,
 	})
 
 	api := http.Server{
-		Addr:              cfg.Web.APIHost,
-		Handler:           apiMux,
-		ReadTimeout:       cfg.Web.ReadTimeout,
-		WriteTimeout:      cfg.Web.WriteTimeout,
-		IdleTimeout:       cfg.Web.IdleTimeout,
-		ErrorLog:          zap.NewStdLog(log.Desugar()),
+		Addr:         cfg.Web.APIHost,
+		Handler:      apiMux,
+		ReadTimeout:  cfg.Web.ReadTimeout,
+		WriteTimeout: cfg.Web.WriteTimeout,
+		IdleTimeout:  cfg.Web.IdleTimeout,
+		ErrorLog:     zap.NewStdLog(log.Desugar()),
 	}
 
 	serverErrors := make(chan error, 1)
