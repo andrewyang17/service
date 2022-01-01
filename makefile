@@ -6,6 +6,9 @@ SHELL := /bin/bash
 # Access metrics directly (4000)
 # expvarmon -ports=":4000" -vars="build,requests,goroutines,errors,panics,mem:memstats.Alloc"
 
+# For testing Authentication
+# curl -H "Authorization: Bearer 0ddfa338-de77-4c23-acf6-2368202fc5a1" http://localhost:3000/v1/testauth
+
 
 # For testing load on the service.
 # hey -m GET -c 100 -n 10000 http://localhost:3000/v1/test
