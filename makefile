@@ -7,7 +7,7 @@ SHELL := /bin/bash
 # expvarmon -ports=":4000" -vars="build,requests,goroutines,errors,panics,mem:memstats.Alloc"
 
 # For testing Authentication
-# curl -H "Authorization: Bearer {TOKEN}" http://localhost:3000/v1/testauth
+# curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/v1/testauth
 
 
 # For testing load on the service.
