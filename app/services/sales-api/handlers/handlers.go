@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"expvar"
+	"github.com/andrewyang17/service/business/sys/auth"
 	"github.com/andrewyang17/service/business/web/mid"
 	"net/http"
 	"net/http/pprof"
@@ -17,6 +18,7 @@ import (
 type APIMuxConfig struct {
 	Shutdown chan os.Signal
 	Log      *zap.SugaredLogger
+	Auth     *auth.Auth
 }
 
 func v1(app *web.App, cfg APIMuxConfig) {
@@ -24,6 +26,7 @@ func v1(app *web.App, cfg APIMuxConfig) {
 	tgh := testgrp.Handlers{Log: cfg.Log}
 
 	app.Handle(http.MethodGet, version, "/test", tgh.Test)
+	app.Handle(http.MethodGet, version, "/testauth", tgh.Test, mid.Authenticate(cfg.Auth), mid.Authorize("ADMIN"))
 }
 
 func APIMux(cfg APIMuxConfig) *web.App {
