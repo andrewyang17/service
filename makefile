@@ -96,3 +96,10 @@ kind-describe:
 	kubectl describe nodes
 	kubectl describe svc
 	kubectl describe pod -l app=sales
+
+# ==============================================================================
+# Running tests within the local computer
+
+test:
+	go test ./... -count=1
+	staticcheck -checks=all ./...
