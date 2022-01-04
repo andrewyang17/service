@@ -155,8 +155,8 @@ func run(log *zap.SugaredLogger) error {
 		Host:         cfg.DB.Host,
 		Name:         cfg.DB.Name,
 		MaxIdleConns: cfg.DB.MaxIdleConns,
-		MaxOpenConns: 0,
-		DisabletLS:   false,
+		MaxOpenConns: cfg.DB.MaxOpenConns,
+		DisableTLS:   cfg.DB.DisableTLS,
 	})
 	if err != nil {
 		return fmt.Errorf("connecting to db: %w", err)

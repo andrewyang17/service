@@ -9,14 +9,15 @@ SHELL := /bin/bash
 # For testing Authentication
 # curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/v1/testauth
 
-
 # For testing load on the service.
 # hey -m GET -c 100 -n 10000 http://localhost:3000/v1/test
 
 # To generate a private/public key PEM file.
-# openssl genpkey -algorithm RSA -out 0ddfa338-de77-4c23-acf6-2368202fc5a1.pem -pkeyopt rsa_keygen_bits:2048
-# openssl rsa -pubout -in 0ddfa338-de77-4c23-acf6-2368202fc5a1.pem -out public.pem
-# ./sales-admin genkey
+# openssl genpkey -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:2048
+# openssl rsa -pubout -in private.pem -out public.pem
+
+# Database Access
+# dblab --host 0.0.0.0 --user postgres --db postgres --pass postgres --ssl disable --port 5432 --driver postgres
 
 # ==============================================================================
 # Running locally
@@ -73,7 +74,7 @@ kind-load:
 
 kind-apply:
 	kustomize build zarf/k8s/kind/database-pod | kubectl apply -f -
-	kubectl wait --namespace=database-system --timeout=120s --for=condition=Available deployment/database-pod
+	kubectl wait --namespace=database-system --timeout=180s --for=condition=Available deployment/database-pod
 	kustomize build zarf/k8s/kind/sales-pod | kubectl apply -f -
 
 kind-status:

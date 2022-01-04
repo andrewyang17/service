@@ -28,12 +28,12 @@ type Config struct {
 	Name         string
 	MaxIdleConns int
 	MaxOpenConns int
-	DisabletLS   bool
+	DisableTLS   bool
 }
 
 func Open(cfg Config) (*sqlx.DB, error) {
 	sslMode := "require"
-	if cfg.DisabletLS {
+	if cfg.DisableTLS {
 		sslMode = "disable"
 	}
 

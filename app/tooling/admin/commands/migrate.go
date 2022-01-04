@@ -12,7 +12,17 @@ import (
 
 var ErrHelp = errors.New("provided help")
 
-func Migrate(cfg database.Config) error {
+func Migrate() error {
+	cfg := database.Config{
+		User:         "postgres",
+		Password:     "postgres",
+		Host:         "localhost",
+		Name:         "postgres",
+		MaxIdleConns: 0,
+		MaxOpenConns: 0,
+		DisableTLS:   true,
+	}
+
 	db, err := database.Open(cfg)
 	if err != nil {
 		return fmt.Errorf("connect database: %w", err)
@@ -27,5 +37,6 @@ func Migrate(cfg database.Config) error {
 	}
 
 	fmt.Println("migrations complete")
-	return nil
+
+	return Seed()
 }

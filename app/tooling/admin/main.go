@@ -7,9 +7,10 @@ import (
 	"github.com/andrewyang17/service/app/tooling/admin/commands"
 )
 
-func main() {
-	err := commands.GenKey()
+var build = "develop"
 
+func main() {
+	err := commands.Migrate()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

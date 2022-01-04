@@ -9,7 +9,17 @@ import (
 )
 
 // Seed loads test data into the database.
-func Seed(cfg database.Config) error {
+func Seed() error {
+	cfg := database.Config{
+		User:         "postgres",
+		Password:     "postgres",
+		Host:         "localhost",
+		Name:         "postgres",
+		MaxIdleConns: 0,
+		MaxOpenConns: 0,
+		DisableTLS:   true,
+	}
+
 	db, err := database.Open(cfg)
 	if err != nil {
 		return fmt.Errorf("connect database: %w", err)
