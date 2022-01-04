@@ -3,15 +3,16 @@ package handlers
 
 import (
 	"expvar"
-	"github.com/andrewyang17/service/business/sys/auth"
-	"github.com/andrewyang17/service/business/web/mid"
 	"net/http"
 	"net/http/pprof"
 	"os"
 
 	"github.com/andrewyang17/service/app/services/sales-api/debug/checkgrp"
 	"github.com/andrewyang17/service/app/services/sales-api/v1/testgrp"
+	"github.com/andrewyang17/service/business/sys/auth"
+	"github.com/andrewyang17/service/business/web/mid"
 	"github.com/andrewyang17/service/foundation/web"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -19,6 +20,7 @@ type APIMuxConfig struct {
 	Shutdown chan os.Signal
 	Log      *zap.SugaredLogger
 	Auth     *auth.Auth
+	DB       *sqlx.DB
 }
 
 func v1(app *web.App, cfg APIMuxConfig) {
@@ -56,12 +58,13 @@ func DebugStandardLibraryMux() *http.ServeMux {
 	return mux
 }
 
-func DebugMux(build string, log *zap.SugaredLogger) http.Handler {
+func DebugMux(build string, log *zap.SugaredLogger, db *sqlx.DB) http.Handler {
 	mux := DebugStandardLibraryMux()
 
 	cgh := checkgrp.Handlers{
 		Build: build,
 		Log:   log,
+		DB:    db,
 	}
 
 	mux.HandleFunc("/debug/readiness", cgh.Readiness)

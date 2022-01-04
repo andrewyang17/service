@@ -14,6 +14,7 @@ import (
 
 	"github.com/andrewyang17/service/app/services/sales-api/handlers"
 	"github.com/andrewyang17/service/business/sys/auth"
+	"github.com/andrewyang17/service/business/sys/database"
 	"github.com/andrewyang17/service/foundation/keystore"
 	"github.com/ardanlabs/conf/v2"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -23,6 +24,8 @@ import (
 
 /*
 Need to figure out timeouts for http service.
+Need to figure out max ide connection for db postgres.
+Need to figure out max open connection for db postgres.
 */
 
 var build = "develop"
@@ -86,6 +89,15 @@ func run(log *zap.SugaredLogger) error {
 			KeyFolder string `conf:"default:zarf/keys/"`
 			ActiveKID string `conf:"default:0ddfa338-de77-4c23-acf6-2368202fc5a1"`
 		}
+		DB struct {
+			User         string `conf:"default:postgres"`
+			Password     string `conf:"default:postgres,mask"`
+			Host         string `conf:"default:localhost"`
+			Name         string `conf:"default:postgres"`
+			MaxIdleConns int    `conf:"default:0"`
+			MaxOpenConns int    `conf:"default:0"`
+			DisableTLS   bool   `conf:"default:true"`
+		}
 	}{
 		Version: conf.Version{
 			Build: build,
@@ -133,11 +145,33 @@ func run(log *zap.SugaredLogger) error {
 	}
 
 	// =========================================================================
+	// Database Support
+
+	log.Infow("startup", "status", "initializing database support", "host", cfg.DB.Host)
+
+	db, err := database.Open(database.Config{
+		User:         cfg.DB.User,
+		Password:     cfg.DB.Password,
+		Host:         cfg.DB.Host,
+		Name:         cfg.DB.Name,
+		MaxIdleConns: cfg.DB.MaxIdleConns,
+		MaxOpenConns: 0,
+		DisabletLS:   false,
+	})
+	if err != nil {
+		return fmt.Errorf("connecting to db: %w", err)
+	}
+	defer func() {
+		log.Infow("shutdown", "status", "stopping database support", "host", cfg.DB.Host)
+		db.Close()
+	}()
+
+	// =========================================================================
 	// Start Debug Service
 
 	log.Infow("startup", "status", "debug router started", "host", cfg.Web.DebugHost)
 
-	debugMux := handlers.DebugMux(build, log)
+	debugMux := handlers.DebugMux(build, log, db)
 
 	go func() {
 		if err := http.ListenAndServe(cfg.Web.DebugHost, debugMux); err != nil {
@@ -161,6 +195,7 @@ func run(log *zap.SugaredLogger) error {
 		Shutdown: shutdown,
 		Log:      log,
 		Auth:     auth,
+		DB:       db,
 	})
 
 	api := http.Server{
