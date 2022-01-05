@@ -84,6 +84,44 @@ func StatusCheck(ctx context.Context, db *sqlx.DB) error {
 	return db.QueryRowContext(ctx, q).Scan(&tmp)
 }
 
+type Transactor interface {
+	Beginx() (*sqlx.Tx, error)
+}
+
+// WithinTran runs passed function and do commit/rollback at the end.
+func WithinTran(ctx context.Context, log *zap.SugaredLogger, db Transactor, fn func(extContext sqlx.ExtContext) error) error {
+	traceID := web.GetTraceID(ctx)
+
+	log.Infow("begin tran", "traceID", traceID)
+	tx, err := db.Beginx()
+	if err != nil {
+		return fmt.Errorf("begin tran: %w", err)
+	}
+
+	mustRollBack := true
+	defer func() {
+		if mustRollBack {
+			log.Infow("rollback tran", "traceID", traceID)
+			if err := tx.Rollback(); err != nil {
+				log.Errorw("unable to rollback tran", "traceID", traceID)
+			}
+		}
+	}()
+
+	if err := fn(tx); err != nil {
+		return fmt.Errorf("exec tran: %w", err)
+	}
+
+	mustRollBack = false
+
+	log.Infow("commit tran", "traceID", traceID)
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tran: %w", err)
+	}
+
+	return nil
+}
+
 // NamedExecContext is a helper function to execute a CUD operation with
 // logging and tracing.
 func NamedExecContext(ctx context.Context, log *zap.SugaredLogger, db sqlx.ExtContext, query string, data interface{}) error {

@@ -2,11 +2,11 @@ package mid
 
 import (
 	"context"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
 
 	"github.com/andrewyang17/service/foundation/web"
+	"go.uber.org/zap"
 )
 
 func Logger(log *zap.SugaredLogger) web.Middleware {
