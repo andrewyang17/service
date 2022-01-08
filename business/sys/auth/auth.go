@@ -9,6 +9,10 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+var (
+	ErrForbidden = errors.New("attempted action is not allowed")
+)
+
 type KeyLookup interface {
 	PrivateKey(kid string) (*rsa.PrivateKey, error)
 	PublicKey(kid string) (*rsa.PublicKey, error)

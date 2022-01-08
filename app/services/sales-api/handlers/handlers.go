@@ -2,13 +2,14 @@
 package handlers
 
 import (
+	"context"
 	"expvar"
 	"net/http"
 	"net/http/pprof"
 	"os"
 
-	"github.com/andrewyang17/service/app/services/sales-api/debug/checkgrp"
-	"github.com/andrewyang17/service/app/services/sales-api/v1/testgrp"
+	"github.com/andrewyang17/service/app/services/sales-api/handlers/debug/checkgrp"
+	v1 "github.com/andrewyang17/service/app/services/sales-api/handlers/v1"
 	"github.com/andrewyang17/service/business/sys/auth"
 	"github.com/andrewyang17/service/business/web/v1/mid"
 	"github.com/andrewyang17/service/foundation/web"
@@ -16,6 +17,19 @@ import (
 	"go.uber.org/zap"
 )
 
+// Options represent optional parameters.
+type Options struct {
+	corsOrigin string
+}
+
+// WithCORS provides configuration options for CORS.
+func WithCORS(origin string) func(opts *Options) {
+	return func(opts *Options) {
+		opts.corsOrigin = origin
+	}
+}
+
+// APIMuxConfig contains all the mandatory systems required by handlers.
 type APIMuxConfig struct {
 	Shutdown chan os.Signal
 	Log      *zap.SugaredLogger
@@ -23,15 +37,14 @@ type APIMuxConfig struct {
 	DB       *sqlx.DB
 }
 
-func v1(app *web.App, cfg APIMuxConfig) {
-	const version = "v1"
-	tgh := testgrp.Handlers{Log: cfg.Log}
+// APIMux constructs a http.Handler with all application routes defined.
+func APIMux(cfg APIMuxConfig, options ...func(opts *Options)) http.Handler {
+	var opts Options
 
-	app.Handle(http.MethodGet, version, "/test", tgh.Test)
-	app.Handle(http.MethodGet, version, "/testauth", tgh.Test, mid.Authenticate(cfg.Auth), mid.Authorize("ADMIN"))
-}
+	for _, option := range options {
+		option(&opts)
+	}
 
-func APIMux(cfg APIMuxConfig) *web.App {
 	app := web.NewApp(
 		cfg.Shutdown,
 		mid.Logger(cfg.Log),
@@ -40,7 +53,19 @@ func APIMux(cfg APIMuxConfig) *web.App {
 		mid.Panics(),
 	)
 
-	v1(app, cfg)
+	if opts.corsOrigin != "" {
+		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+			return nil
+		}
+
+		app.Handle(http.MethodOptions, "", "/*", h, mid.Cors(opts.corsOrigin))
+	}
+
+	v1.Routes(app, v1.Config{
+		Log:  cfg.Log,
+		Auth: cfg.Auth,
+		DB:   cfg.DB,
+	})
 
 	return app
 }

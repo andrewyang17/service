@@ -4,9 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
+// Response converts a Go value to JSON and sends it to the client.
 func Response(ctx context.Context, w http.ResponseWriter, statusCode int, data interface{}) error {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "foundation.web.respond")
+	span.SetAttributes(attribute.Int("statusCode", statusCode))
+	defer span.End()
 
 	SetStatusCode(ctx, statusCode)
 

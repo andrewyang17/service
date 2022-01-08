@@ -9,27 +9,40 @@ import (
 	"time"
 
 	"github.com/dimfeld/httptreemux/v5"
-	"github.com/google/uuid"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Handler func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 
 type App struct {
-	*httptreemux.ContextMux
+	mux      *httptreemux.ContextMux
+	otmux    http.Handler
 	shutdown chan os.Signal
 	mv       []Middleware
 }
 
 func NewApp(shutdown chan os.Signal, mv ...Middleware) *App {
+	mux := httptreemux.NewContextMux()
+
 	return &App{
-		ContextMux: httptreemux.NewContextMux(),
-		shutdown:   shutdown,
-		mv:         mv,
+		mux:      mux,
+		otmux:    otelhttp.NewHandler(mux, "request"),
+		shutdown: shutdown,
+		mv:       mv,
 	}
 }
 
 func (a *App) SignalShutdown() {
 	a.shutdown <- syscall.SIGTERM
+}
+
+// ServeHTTP implements the http.Handler interface. It's the entry point for
+// all http traffic and allows the opentelemetry mux to run first to handle
+// tracing. The opentelemetry mux then calls the application mux to handle
+// application traffic.
+func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.otmux.ServeHTTP(w, r)
 }
 
 func (a *App) Handle(method string, group string, path string, handler Handler, mv ...Middleware) {
@@ -42,8 +55,11 @@ func (a *App) Handle(method string, group string, path string, handler Handler, 
 	h := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
+		// Capture the parent request span from the context.
+		span := trace.SpanFromContext(ctx)
+
 		v := Values{
-			TraceID: uuid.New().String(),
+			TraceID: span.SpanContext().TraceID().String(),
 			Now:     time.Now(),
 		}
 		ctx = context.WithValue(ctx, key, &v)
@@ -59,5 +75,5 @@ func (a *App) Handle(method string, group string, path string, handler Handler, 
 		finalPath = "/" + group + path
 	}
 
-	a.ContextMux.Handle(method, finalPath, h)
+	a.mux.Handle(method, finalPath, h)
 }

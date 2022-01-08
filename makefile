@@ -3,14 +3,20 @@ SHELL := /bin/bash
 # ==============================================================================
 # Testing running system
 
-# Access metrics directly (4000)
-# expvarmon -ports=":4000" -vars="build,requests,goroutines,errors,panics,mem:memstats.Alloc"
+# Used to install expvarmon program for metrics dashboard.
+# go install github.com/divan/expvarmon@latest
 
-# For testing Authentication
-# curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/v1/testauth
+# Access metrics directly (4000) or through the sidecar (3001)
+# expvarmon -ports=":4000" -vars="build,requests,goroutines,errors,panics,mem:memstats.Alloc"
+# expvarmon -ports=":3001" -endpoint="/metrics" -vars="build,requests,goroutines,errors,panics,mem:memstats.Alloc"
+
+# For testing a simple query on the system. Don't forget to `make seed` first.
+# curl --user "admin@example.com:gophers" http://localhost:3000/v1/users/token
+# export TOKEN="COPY TOKEN STRING FROM LAST CALL"
+# curl -H "Authorization: Bearer ${TOKEN}" http://localhost:3000/v1/users/1/2
 
 # For testing load on the service.
-# hey -m GET -c 100 -n 10000 http://localhost:3000/v1/test
+# hey -m GET -c 100 -n 10000 -H "Authorization: Bearer ${TOKEN}" http://localhost:3000/v1/users/1/2
 
 # To generate a private/public key PEM file.
 # openssl genpkey -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:2048
@@ -36,6 +42,15 @@ build:
 tidy:
 	go mod tidy
 	go mod vendor
+
+deps-upgrade:
+	# go get $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all)
+	go get -u -t -d -v ./...
+	go mod tidy
+	go mod vendor
+
+list:
+	go list -mod=mod all
 
 
 # ==============================================================================
@@ -74,7 +89,9 @@ kind-load:
 
 kind-apply:
 	kustomize build zarf/k8s/kind/database-pod | kubectl apply -f -
-	kubectl wait --namespace=database-system --timeout=180s --for=condition=Available deployment/database-pod
+	kubectl wait --namespace=database-system --timeout=120s --for=condition=Available deployment/database-pod
+	kustomize build zarf/k8s/kind/zipkin-pod | kubectl apply -f -
+	kubectl wait --namespace=zipkin-system --timeout=120s --for=condition=Available deployment/zipkin-pod
 	kustomize build zarf/k8s/kind/sales-pod | kubectl apply -f -
 
 kind-status:
@@ -87,6 +104,9 @@ kind-status-sales:
 
 kind-status-db:
 	kubectl get pods -o wide --watch --namespace=database-system
+
+kind-logs-zipkin:
+	kubectl logs -l app=zipkin --namespace=zipkin-system --all-containers=true -f --tail=100
 
 kind-logs:
 	kubectl logs -l app=sales --all-containers=true -f --tail=100  | go run app/tooling/logfmt/main.go
