@@ -2,9 +2,9 @@ package testgrp
 
 import (
 	"context"
-	"github.com/andrewyang17/service/foundation/web"
 	"net/http"
 
+	"github.com/andrewyang17/service/foundation/web"
 	"go.uber.org/zap"
 )
 

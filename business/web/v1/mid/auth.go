@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/andrewyang17/service/business/sys/auth"
-	"github.com/andrewyang17/service/business/sys/validate"
+	"github.com/andrewyang17/service/business/web/v1"
 	"github.com/andrewyang17/service/foundation/web"
 )
 
@@ -24,12 +24,12 @@ func Authenticate(a *auth.Auth) web.Middleware {
 			parts := strings.Split(authStr, " ")
 			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
 				err := errors.New("expected authorization header format: bearer <token>")
-				return validate.NewRequestError(err, http.StatusUnauthorized)
+				return v1.NewRequestError(err, http.StatusUnauthorized)
 			}
 
 			claims, err := a.ValidateToken(parts[1])
 			if err != nil {
-				return validate.NewRequestError(err, http.StatusUnauthorized)
+				return v1.NewRequestError(err, http.StatusUnauthorized)
 			}
 
 			ctx = auth.SetClaims(ctx, claims)
@@ -52,14 +52,14 @@ func Authorize(roles ...string) web.Middleware {
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 			claims, err := auth.GetClaims(ctx)
 			if err != nil {
-				return validate.NewRequestError(
+				return v1.NewRequestError(
 					fmt.Errorf("you are not authorized for that action, no claims"),
 					http.StatusForbidden,
 				)
 			}
 
 			if !claims.Authorized(roles...) {
-				return validate.NewRequestError(
+				return v1.NewRequestError(
 					fmt.Errorf("you are not authorized for that action, claims[%v] roles[%v]", claims.Roles, roles),
 					http.StatusForbidden,
 				)

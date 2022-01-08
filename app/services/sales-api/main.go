@@ -16,10 +16,10 @@ import (
 	"github.com/andrewyang17/service/business/sys/auth"
 	"github.com/andrewyang17/service/business/sys/database"
 	"github.com/andrewyang17/service/foundation/keystore"
+	"github.com/andrewyang17/service/foundation/logger"
 	"github.com/ardanlabs/conf/v2"
 	"go.uber.org/automaxprocs/maxprocs"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 /*
@@ -31,7 +31,7 @@ Need to figure out max open connection for db postgres.
 var build = "develop"
 
 func main() {
-	log, err := initLogger("SALES-API")
+	log, err := logger.New("SALES-API")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -42,23 +42,6 @@ func main() {
 		log.Errorw("startup", "ERROR", err)
 		os.Exit(1)
 	}
-}
-
-func initLogger(service string) (*zap.SugaredLogger, error) {
-	config := zap.NewProductionConfig()
-	//config.OutputPaths = []string{"sdout"}
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	config.DisableStacktrace = true
-	config.InitialFields = map[string]interface{}{
-		"service": service,
-	}
-
-	log, err := config.Build()
-	if err != nil {
-		return nil, err
-	}
-
-	return log.Sugar(), nil
 }
 
 func run(log *zap.SugaredLogger) error {

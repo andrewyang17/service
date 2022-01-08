@@ -7,7 +7,7 @@ import (
 
 func New(service string) (*zap.SugaredLogger, error) {
 	config := zap.NewProductionConfig()
-	config.OutputPaths = []string{"sdout"}
+	//config.OutputPaths = []string{"sdout"}
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	config.DisableStacktrace = true
 	config.InitialFields = map[string]interface{} {

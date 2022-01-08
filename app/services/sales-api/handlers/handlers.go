@@ -3,7 +3,6 @@ package handlers
 
 import (
 	"expvar"
-	mid2 "github.com/andrewyang17/service/business/web/v1/mid"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"github.com/andrewyang17/service/app/services/sales-api/debug/checkgrp"
 	"github.com/andrewyang17/service/app/services/sales-api/v1/testgrp"
 	"github.com/andrewyang17/service/business/sys/auth"
+	"github.com/andrewyang17/service/business/web/v1/mid"
 	"github.com/andrewyang17/service/foundation/web"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -28,16 +28,16 @@ func v1(app *web.App, cfg APIMuxConfig) {
 	tgh := testgrp.Handlers{Log: cfg.Log}
 
 	app.Handle(http.MethodGet, version, "/test", tgh.Test)
-	app.Handle(http.MethodGet, version, "/testauth", tgh.Test, mid2.Authenticate(cfg.Auth), mid2.Authorize("ADMIN"))
+	app.Handle(http.MethodGet, version, "/testauth", tgh.Test, mid.Authenticate(cfg.Auth), mid.Authorize("ADMIN"))
 }
 
 func APIMux(cfg APIMuxConfig) *web.App {
 	app := web.NewApp(
 		cfg.Shutdown,
-		mid2.Logger(cfg.Log),
-		mid2.Errors(cfg.Log),
-		mid2.Metrics(),
-		mid2.Panics(),
+		mid.Logger(cfg.Log),
+		mid.Errors(cfg.Log),
+		mid.Metrics(),
+		mid.Panics(),
 	)
 
 	v1(app, cfg)
